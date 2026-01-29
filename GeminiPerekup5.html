@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Resell Pro</title>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2991/2991148.png">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        :root {
+            --primary-grad: linear-gradient(135deg, #da22ff 0%, #9733ee 100%);
+            --bg-color: #f4f7f6;
+            --danger: #ff4b5c;
+            --success: #2ecc71;
+            --gold: #d4af37;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #222;
+            display: flex; justify-content: center;
+            height: 100vh; overflow: hidden;
+        }
+
+        #app-container {
+            width: 100%; max-width: 414px;
+            height: 100%; background-color: var(--bg-color);
+            position: relative; display: flex; flex-direction: column;
+            overflow: hidden;
+        }
+
+        header {
+            background: var(--primary-grad); color: white;
+            padding: 25px 20px 15px; text-align: center;
+            font-size: 1.2rem; font-weight: bold; z-index: 10;
+        }
+
+        main { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 100px; }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        nav {
+            position: absolute; bottom: 0; width: 100%; height: 85px;
+            background: rgba(255,255,255,0.95); backdrop-filter: blur(10px);
+            display: flex; justify-content: space-around;
+            align-items: center; border-top: 1px solid #eee; z-index: 20;
+            padding-bottom: 15px;
+        }
+
+        nav button {
+            background: none; border: none; color: #aaa;
+            font-size: 0.7rem; display: flex; flex-direction: column; align-items: center;
+            cursor: pointer;
+        }
+        nav button.active { color: #9733ee; }
+        nav button i { font-size: 1.4rem; margin-bottom: 4px; }
+
+        .form-group { margin-bottom: 12px; }
+        label { display: block; margin-bottom: 4px; font-weight: 500; color: #555; font-size: 0.85rem; }
+        input, select {
+            width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 12px;
+            box-sizing: border-box; font-size: 1rem; outline: none; background: white;
+            -webkit-appearance: none;
+        }
+
+        .btn-primary {
+            width: 100%; padding: 16px; background: var(--primary-grad);
+            color: white; border: none; border-radius: 12px;
+            font-size: 1rem; font-weight: bold; cursor: pointer;
+            box-shadow: 0 4px 15px rgba(151, 51, 238, 0.3);
+        }
+
+        .card {
+            background: white; padding: 15px; border-radius: 16px;
+            margin-bottom: 12px; display: flex; gap: 15px; position: relative;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+        }
+        .card::before { content: ''; position: absolute; left: 0; top: 15px; bottom: 15px; width: 4px; border-radius: 0 4px 4px 0; }
+        .card.active::before { background: #9733ee; }
+        .card.sold::before { background: var(--success); }
+
+        .card-img { width: 70px; height: 70px; border-radius: 12px; object-fit: cover; background: #eee; }
+        .card-info { flex: 1; }
+        .card h3 { margin: 0 0 4px 0; font-size: 1rem; display: flex; justify-content: space-between; align-items: center; }
+        .card p { margin: 2px 0; font-size: 0.85rem; color: #777; }
+
+        .stat-card {
+            background: white; padding: 15px; border-radius: 16px; margin-bottom: 10px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .stat-val { font-weight: bold; font-size: 1.2rem; }
+
+        .filter-row { display: flex; gap: 8px; margin-bottom: 15px; overflow-x: auto; padding: 5px 0; }
+        .filter-btn { 
+            padding: 8px 18px; border-radius: 20px; border: none; background: #eee; 
+            font-size: 0.85rem; cursor: pointer; white-space: nowrap;
+        }
+        .filter-btn.active { background: var(--primary-grad); color: white; }
+
+        .photo-upload {
+            width: 100%; height: 100px; border: 2px dashed #ddd; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center; font-size: 0.9rem;
+            color: #aaa; cursor: pointer; background-size: cover; background-position: center;
+        }
+
+        /* Кнопки импорта/экспорта */
+        .data-actions {
+            margin-top: 30px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        .btn-outline {
+            background: none; border: 1px solid #ccc; padding: 10px 15px;
+            border-radius: 10px; font-size: 0.8rem; color: #666; cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <header id="header-title">Новое устройство</header>
+
+    <main>
+        <div id="tab-add" class="tab-content active">
+            <div class="form-group">
+                <label>Категория</label>
+                <select id="add-type" onchange="renderAddForm()">
+                    <option value="phone">Смартфон</option>
+                    <option value="headphones">Наушники</option>
+                    <option value="watch">Смарт-часы</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <div id="photo-preview" class="photo-upload" onclick="document.getElementById('inp-photo').click()">
+                    <span><i class="fa-solid fa-camera"></i> Добавить фото</span>
+                </div>
+                <input type="file" id="inp-photo" accept="image/*" style="display:none" onchange="handlePhoto(this)">
+            </div>
+
+            <div id="dynamic-form"></div>
+
+            <div style="display:flex; gap:12px;">
+                <div class="form-group" style="flex:1">
+                    <label>Покупка (₽)</label>
+                    <input type="number" id="inp-buy" placeholder="Цена">
+                </div>
+                <div class="form-group" style="flex:1">
+                    <label>Ремонт (₽)</label>
+                    <input type="number" id="inp-repair" value="0">
+                </div>
+            </div>
+            <button class="btn-primary" onclick="addItem()">Добавить товар</button>
+        </div>
+
+        <div id="tab-sell" class="tab-content">
+            <div class="form-group"><label>Поиск</label><input type="text" id="sell-search" placeholder="Модель или IMEI..." oninput="renderSellList()"></div>
+            <div class="form-group"><label>Товар в наличии</label><select id="sell-select"></select></div>
+            <div class="form-group"><label>Цена продажи (₽)</label><input type="number" id="sell-price" placeholder="Сумма сделки"></div>
+            <button class="btn-primary" onclick="completeSell()">Оформить продажу</button>
+        </div>
+
+        <div id="tab-base" class="tab-content">
+            <div class="filter-row">
+                <button class="filter-btn active" onclick="renderBase('phone', this)">Телефоны</button>
+                <button class="filter-btn" onclick="renderBase('headphones', this)">Наушники</button>
+                <button class="filter-btn" onclick="renderBase('watch', this)">Часы</button>
+            </div>
+            <div id="base-list"></div>
+        </div>
+
+        <div id="tab-stats" class="tab-content">
+            <div style="background:white; border-radius:16px; padding:15px; height:200px; margin-bottom:15px;">
+                <canvas id="statChart"></canvas>
+            </div>
+            
+            <div class="stat-card">
+                <span style="color:#777">Чистая прибыль:</span>
+                <span id="stat-profit" class="stat-val">0 ₽</span>
+            </div>
+            <div class="stat-card">
+                <span style="color:#777">ROI окупаемость:</span>
+                <span id="stat-roi" class="stat-val">0%</span>
+            </div>
+            <div class="stat-card">
+                <span style="color:#777">Сделок:</span>
+                <span id="stat-count" class="stat-val">0</span>
+            </div>
+            
+            <div class="filter-row" style="justify-content:center;">
+                <button onclick="updateStats('1m', this)" class="filter-btn active">Месяц</button>
+                <button onclick="updateStats('3m', this)" class="filter-btn">3 месяца</button>
+                <button onclick="updateStats('1y', this)" class="filter-btn">Год</button>
+            </div>
+
+            <div class="data-actions">
+                <button class="btn-outline" onclick="downloadBackup()"><i class="fa-solid fa-download"></i> Экспорт</button>
+                <button class="btn-outline" onclick="document.getElementById('import-file').click()"><i class="fa-solid fa-upload"></i> Импорт</button>
+                <input type="file" id="import-file" style="display:none" accept=".json" onchange="importBackup(this)">
+            </div>
+        </div>
+
+        <div id="tab-history" class="tab-content">
+            <div id="history-list"></div>
+        </div>
+    </main>
+
+    <nav>
+        <button class="active" onclick="showTab('add', this)"><i class="fa-solid fa-plus-square"></i>Ввод</button>
+        <button onclick="showTab('sell', this)"><i class="fa-solid fa-shopping-cart"></i>Продать</button>
+        <button onclick="showTab('base', this)"><i class="fa-solid fa-box"></i>База</button>
+        <button onclick="showTab('stats', this)"><i class="fa-solid fa-chart-bar"></i>Стат.</button>
+        <button onclick="showTab('history', this)"><i class="fa-solid fa-history"></i>Лог</button>
+    </nav>
+</div>
+
+<script>
+    let db = JSON.parse(localStorage.getItem('resell_db_final')) || [];
+    let logs = JSON.parse(localStorage.getItem('resell_logs_final')) || [];
+    let tempPhoto = "";
+    let chartObj = null;
+
+    function showTab(name, btn) {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+        document.getElementById('tab-' + name).classList.add('active');
+        btn.classList.add('active');
+        
+        const titles = {add: "Новое устройство", sell: "Оформление продажи", base: "Склад", stats: "Финансовый отчет", history: "История операций"};
+        document.getElementById('header-title').innerText = titles[name];
+        
+        if(name === 'sell') renderSellList();
+        if(name === 'base') renderBase('phone', document.querySelector('.filter-btn'));
+        if(name === 'stats') updateStats('1m', document.querySelectorAll('.filter-btn')[3]);
+        if(name === 'history') renderHistory();
+    }
+
+    function renderAddForm() {
+        const type = document.getElementById('add-type').value;
+        const div = document.getElementById('dynamic-form');
+        
+        const placeholders = {
+            phone: { b: "Apple", m: "iPhone 14 Pro", i: "IMEI или S/N", mem: "128" },
+            headphones: { b: "Apple", m: "AirPods Pro 2", i: "Серийный номер" },
+            watch: { b: "Apple", m: "Watch S8 45mm", i: "Серийный номер" }
+        };
+        const p = placeholders[type];
+
+        let h = `<div class="form-group"><label>Бренд</label><input id="b-brand" placeholder="${p.b}"></div>
+                 <div class="form-group"><label>Модель</label><input id="b-model" placeholder="${p.m}"></div>
+                 <div class="form-group"><label>Цвет</label><input id="b-color" placeholder="Напр: Тёмный"></div>`;
+        
+        if(type === 'phone') {
+            h += `<div class="form-group"><label>Память (Гб)</label><input type="number" id="b-memory" placeholder="${p.mem}"></div>`;
+        }
+        
+        h += `<div class="form-group"><label>${type === 'phone' ? 'IMEI / S/N' : 'Серийный номер'}</label><input id="b-imei" placeholder="${p.i}"></div>`;
+        div.innerHTML = h;
+    }
+    renderAddForm();
+
+    function handlePhoto(input) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.src = e.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 400; canvas.height = 400;
+                ctx.drawImage(img, 0, 0, 400, 400);
+                tempPhoto = canvas.toDataURL('image/jpeg', 0.7);
+                document.getElementById('photo-preview').style.backgroundImage = `url(${tempPhoto})`;
+                document.getElementById('photo-preview').innerHTML = "";
+            };
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+
+    function addItem() {
+        const type = document.getElementById('add-type').value;
+        const item = {
+            id: Date.now(),
+            type,
+            brand: document.getElementById('b-brand').value,
+            model: document.getElementById('b-model').value,
+            color: document.getElementById('b-color').value,
+            imei: document.getElementById('b-imei').value,
+            memory: document.getElementById('b-memory') ? document.getElementById('b-memory').value : '',
+            buy: parseFloat(document.getElementById('inp-buy').value || 0),
+            rep: parseFloat(document.getElementById('inp-repair').value || 0),
+            photo: tempPhoto,
+            status: 'stock',
+            date: new Date().toISOString()
+        };
+
+        if(!item.brand || !item.buy) return alert("Заполни бренд и цену!");
+
+        db.push(item);
+        logs.unshift({t: `Приход: ${item.brand} ${item.model}`, d: new Date().toLocaleString(), type:'in'});
+        save();
+        alert("Товар добавлен!");
+        location.reload();
+    }
+
+    function renderSellList() {
+        const search = document.getElementById('sell-search').value.toLowerCase();
+        const sel = document.getElementById('sell-select');
+        const active = db.filter(i => i.status === 'stock' && (`${i.brand} ${i.model} ${i.imei}`).toLowerCase().includes(search));
+        sel.innerHTML = active.map(i => `<option value="${i.id}">${i.brand} ${i.model} (${i.buy + i.rep}₽)</option>`).join('');
+    }
+
+    function completeSell() {
+        const id = document.getElementById('sell-select').value;
+        const price = parseFloat(document.getElementById('sell-price').value);
+        if(!id || !price) return alert("Выбери товар и цену!");
+
+        const idx = db.findIndex(i => i.id == id);
+        db[idx].status = 'sold';
+        db[idx].sellPrice = price;
+        db[idx].sellDate = new Date().toISOString();
+        
+        logs.unshift({t: `Продажа: ${db[idx].brand} ${db[idx].model}`, d: new Date().toLocaleString(), type:'out'});
+        save();
+        alert("Успешно продано!");
+        showTab('stats', document.querySelectorAll('nav button')[3]);
+    }
+
+    function renderBase(type, btn) {
+        document.querySelectorAll('#tab-base .filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const list = document.getElementById('base-list');
+        const filtered = db.filter(i => i.type === type);
+        
+        list.innerHTML = filtered.map(i => {
+            const cost = i.buy + i.rep;
+            const profit = i.status === 'sold' ? i.sellPrice - cost : 0;
+            const color = profit >= 0 ? 'var(--success)' : 'var(--danger)';
+            
+            return `<div class="card ${i.status === 'stock' ? 'active' : 'sold'}">
+                <img src="${i.photo || 'https://via.placeholder.com/70?text=Нет+фото'}" class="card-img">
+                <div class="card-info">
+                    <h3 style="margin-bottom:2px;">${i.brand} ${i.model} 
+                        ${i.status === 'sold' ? `<span style="font-size:0.8rem; color:${color}; font-weight:900;">+${((profit/cost)*100).toFixed(0)}% ROI</span>` : ''}
+                    </h3>
+                    <p>${i.memory ? i.memory+'Gb | ' : ''}${i.color}</p>
+                    ${i.status === 'sold' 
+                        ? `<p style="color:${color}; font-weight:bold; font-size:1rem;">Прибыль: ${profit} ₽</p>` 
+                        : `<p style="color:var(--gold); font-weight:500;">Себестоимость: ${cost} ₽</p>`}
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    function updateStats(period, btn) {
+        if(btn) {
+            document.querySelectorAll('#tab-stats .filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        const sold = db.filter(i => i.status === 'sold');
+        let totalProfit = 0, totalCost = 0;
+        
+        sold.forEach(i => {
+            totalProfit += (i.sellPrice - (i.buy + i.rep));
+            totalCost += (i.buy + i.rep);
+        });
+
+        const profitEl = document.getElementById('stat-profit');
+        profitEl.innerText = totalProfit + " ₽";
+        profitEl.style.color = totalProfit >= 0 ? "var(--success)" : "var(--danger)";
+
+        document.getElementById('stat-roi').innerText = totalCost > 0 ? ((totalProfit/totalCost)*100).toFixed(1) + "%" : "0%";
+        document.getElementById('stat-count').innerText = sold.length;
+
+        renderChart(sold);
+    }
+
+    function renderChart(data) {
+        const ctx = document.getElementById('statChart').getContext('2d');
+        if(chartObj) chartObj.destroy();
+        chartObj = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.map(i => new Date(i.sellDate).toLocaleDateString()),
+                datasets: [{ label: 'Прибыль', data: data.map(i => i.sellPrice - (i.buy+i.rep)), borderColor: '#9733ee', backgroundColor: 'rgba(151, 51, 238, 0.1)', fill: true, tension: 0.4 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+    }
+
+    function renderHistory() {
+        document.getElementById('history-list').innerHTML = logs.map(l => `
+            <div class="stat-card" style="border-left: 4px solid ${l.type==='in'?'#9733ee':'#2ecc71'}">
+                <div style="font-size:0.9rem;"><b>${l.t}</b><br><small style="color:#999">${l.d}</small></div>
+            </div>
+        `).join('');
+    }
+
+    function save() {
+        localStorage.setItem('resell_db_final', JSON.stringify(db));
+        localStorage.setItem('resell_logs_final', JSON.stringify(logs));
+    }
+
+    // ФУНКЦИИ БЭКАПА
+    function downloadBackup() {
+        const data = {
+            db: db,
+            logs: logs,
+            version: "4.0",
+            exportDate: new Date().toLocaleString()
+        };
+        const blob = new Blob([JSON.stringify(data)], {type: "application/json"});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `resell_backup_${new Date().toLocaleDateString()}.json`;
+        a.click();
+    }
+
+    function importBackup(input) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+                if (data.db && data.logs) {
+                    db = data.db;
+                    logs = data.logs;
+                    save();
+                    alert("Данные успешно восстановлены!");
+                    location.reload();
+                } else {
+                    alert("Неверный формат файла");
+                }
+            } catch (err) {
+                alert("Ошибка при чтении файла");
+            }
+        };
+        reader.readAsText(file);
+    }
+</script>
+</body>
+</html>
